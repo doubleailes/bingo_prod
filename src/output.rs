@@ -6,6 +6,7 @@ pub fn render(grid: &Grid, format: OutputFormat) -> String {
         OutputFormat::Text => render_text(grid),
         OutputFormat::Csv => render_csv(grid),
         OutputFormat::Markdown => render_markdown(grid),
+        OutputFormat::Png => unreachable!("PNG cards are rendered via image_output::render"),
     }
 }
 
