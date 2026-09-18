@@ -1,16 +1,19 @@
 mod cli;
 mod grid;
+mod image_output;
 mod output;
 
 use std::fs;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 
-use cli::Args;
+use cli::{Args, OutputFormat};
+use grid::Grid;
 
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -23,12 +26,24 @@ fn main() -> Result<()> {
 
     let free_space = args.free_space.then_some(args.free_space_text.as_str());
 
-    let mut rendered_cards = Vec::with_capacity(args.count);
+    let mut grids = Vec::with_capacity(args.count);
     for _ in 0..args.count {
-        let grid = grid::generate(&elements, args.size, free_space, &mut rng)?;
-        rendered_cards.push(output::render(&grid, args.format));
+        grids.push(grid::generate(&elements, args.size, free_space, &mut rng)?);
     }
-    let rendered = rendered_cards.join("\n\n");
+
+    if args.format == OutputFormat::Png {
+        write_png_cards(&grids, &args)
+    } else {
+        write_text_cards(&grids, &args)
+    }
+}
+
+fn write_text_cards(grids: &[Grid], args: &Args) -> Result<()> {
+    let rendered = grids
+        .iter()
+        .map(|grid| output::render(grid, args.format))
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
     match &args.output {
         Some(path) => {
@@ -43,6 +58,41 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn write_png_cards(grids: &[Grid], args: &Args) -> Result<()> {
+    let base = args
+        .output
+        .as_ref()
+        .context("--output <FILE> is required when using --format png")?;
+
+    for (index, grid) in grids.iter().enumerate() {
+        let bytes = image_output::render(grid)?;
+        let path = card_path(base, index, grids.len());
+        fs::write(&path, bytes)
+            .with_context(|| format!("failed to write image to {}", path.display()))?;
+    }
+
+    Ok(())
+}
+
+/// Path for the `index`-th of `count` cards: `base` unchanged when there's
+/// only one card, otherwise `base` with a `-<N>` suffix before the extension.
+fn card_path(base: &Path, index: usize, count: usize) -> PathBuf {
+    if count <= 1 {
+        return base.to_path_buf();
+    }
+
+    let stem = base.file_stem().and_then(|s| s.to_str()).unwrap_or("card");
+    let mut file_name = format!("{stem}-{}", index + 1);
+    if let Some(ext) = base.extension().and_then(|s| s.to_str()) {
+        file_name.push('.');
+        file_name.push_str(ext);
+    }
+
+    let mut path = base.to_path_buf();
+    path.set_file_name(file_name);
+    path
 }
 
 fn load_elements(args: &Args) -> Result<Vec<String>> {

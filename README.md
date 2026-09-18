@@ -28,11 +28,17 @@ bingo --input elements.txt
 | `-f, --free-space` | Insert a free space in the center (requires an odd size) | off |
 | `--free-space-text <TEXT>` | Text shown in the free space | `FREE` |
 | `--seed <SEED>` | Seed the RNG for reproducible output | random |
-| `-F, --format <FORMAT>` | Output format: `text`, `csv`, or `markdown` | `text` |
+| `-F, --format <FORMAT>` | Output format: `text`, `csv`, `markdown`, or `png` | `text` |
 | `-o, --output <FILE>` | Write output to a file instead of stdout | stdout |
 
 A grid needs `size * size` elements (or `size * size - 1` with `--free-space`);
 the tool errors out if not enough elements are given.
+
+`--format png` renders each card as a PNG image instead of text. It requires
+`--output <FILE>`, since image data can't be written to stdout. When
+`--count` is greater than 1, each card is written next to that path with a
+`-<N>` suffix inserted before the extension (e.g. `cards.png` becomes
+`cards-1.png`, `cards-2.png`, ...).
 
 ## Examples
 
@@ -46,6 +52,12 @@ Generate 4 printable cards as Markdown tables:
 
 ```sh
 bingo --input elements.txt --count 4 --format markdown --output cards.md
+```
+
+Generate 4 printable cards as PNG images (`cards-1.png` .. `cards-4.png`):
+
+```sh
+bingo --input elements.txt --count 4 --format png --output cards.png
 ```
 
 ## Development

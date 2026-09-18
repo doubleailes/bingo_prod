@@ -40,6 +40,10 @@ pub struct Args {
     pub format: OutputFormat,
 
     /// Write the output to a file instead of stdout.
+    ///
+    /// Required when `--format png`, since image data can't be written to
+    /// stdout. When generating more than one card, each card is written
+    /// next to this path with a `-<N>` suffix inserted before the extension.
     #[arg(short, long, value_name = "FILE")]
     pub output: Option<PathBuf>,
 }
@@ -49,4 +53,6 @@ pub enum OutputFormat {
     Text,
     Csv,
     Markdown,
+    /// Render each card as a PNG image instead of text.
+    Png,
 }
